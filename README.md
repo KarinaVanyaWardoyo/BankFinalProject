@@ -1,4 +1,4 @@
-# Bank Final Project
+# Bank Final Project 🏦💵
 Evaluate the performance of the bank’s recent marketing campaigns and provide data-driven insights to support future strategic decisions. The report was created using R Markdown and knitted to HTML.
 
 # File Description
