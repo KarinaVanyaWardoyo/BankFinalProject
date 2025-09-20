@@ -1,0 +1,591 @@
+---
+title: "FinalExam-2702350024-KarinaVanyaWardoyo"
+author: "Karina Vanya Wardoyo"
+date: "2025-06-20"
+output:
+  html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE,fig.width = 7,fig.height = 5, dev = "png")
+```
+
+
+```{r}
+library(tidyverse) # collection of packages for manipulating data and visualizations, inside there is already dplyr, which is why dplyr isn't declared as library(dplyr) again
+library(ggplot2) # creating static plots and visualizations
+library(plotly) # convert plots that were made by ggplot2 to an interactive visualizations 
+library(knitr) # neat table formatting
+library(kableExtra) # enhanced styling and formatting options for TABLES in html output
+```
+
+# Evaluation on the performance of the bank's recent marketing campaigns {.tabset}
+
+Presentation Video Link = https://binusianorg-my.sharepoint.com/personal/karina_wardoyo_binus_ac_id/_layouts/15/guestaccess.aspx?share=Eu9ZPmcecUNOl4Ch_qA2X9YBo3SyreCdMsLYkp0ZlNAnnw&e=CdiaCa 
+
+```{r}
+df<-read.csv("data_D.csv",row.names = 1)
+head(df)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reading the CSV, also making the 1st column became the index for rows using row.names=1 but after that column 'X' will no longer show as column but became index, after that display the first 6 rows of data
+
+
+## Question 1: Data Quality Assessment and Preprocessing {.tabset}
+### 1a. Identify data quality issues
+#### Missing values
+```{r}
+colSums(is.na(df))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on what we checked there is only 1 column with missing values, that is the duration column with 12 missing values.
+
+#### Duplicated values
+```{r}
+sum(duplicated(df))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on what we checked there is no duplicated data that exist in the dataset.
+
+#### Unknown categories
+```{r}
+# inconsistent or unknown data is for categorical typed data so we check on the categorical columns
+cate_column <- names(df)[sapply(df, function(x) is.character(x)|is.factor(x))]
+
+# iteration for printing the categorical column and their unique values  
+for (columnn in cate_column){
+  cat("\nColumn:", columnn, "\n")
+  print(table(df[[columnn]]))
+}
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on what we checked in categorical columns there is a few unknown categories and a few blank values such as " " in job column and "unknown" in job, marital, education, housing and loan columns.
+
+#### Outliers in numerical columns
+```{r}
+num_column <- sapply(df, is.numeric)
+print(num_column)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on what we checked the numerical columns are age, duration, campaign, pdays, previous. So, we will only make the boxplots of these columns for checking outliers and extreme values, except the pdays because most of the datas is on 999 which means not previously contacted
+```{r}
+q1age<-quantile(df$age, 0.25, na.rm = TRUE)
+q3age <-quantile(df$age, 0.75, na.rm = TRUE)
+IQR<- q3age - q1age
+extreme<- 3 * IQR
+
+outAge<-ggplot(df,aes(y = age)) +
+  geom_boxplot() +
+  geom_point(
+    data = subset(df, age < (q1age - extreme) | 
+                   age > (q3age + extreme)),
+    aes(x = 0, y = age),
+    color = "lightcoral") +
+  labs(
+    title = "Age Outliers and Extreme Values",
+    y = "Age") +
+  theme(axis.text.x = element_blank())
+
+ggplotly(outAge)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on the boxplot the biggest outlier is age 89 but technically it is still possible for someone to be 89 years old, so the outliers in age column is considered valid outliers.
+```{r}
+q1duration<-quantile(df$duration, 0.25, na.rm = TRUE)
+q3duration <-quantile(df$duration, 0.75, na.rm = TRUE)
+IQR<- q3duration - q1duration
+extreme<- 3 * IQR
+outDuration<-ggplot(df,aes(y = duration)) +
+  geom_boxplot() +
+  geom_point(
+    data = subset(df, duration < (q1duration - extreme) | 
+                   duration > (q3duration + extreme)),
+    aes(x = 0, y = duration),
+    color = "lightcoral") +
+  labs(
+    title = "Duration Outliers and Extreme Values",
+    y = "Duration") +
+  theme(axis.text.x = element_blank())
+ggplotly(outDuration)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on the boxplot the biggest outlier is 971 seconds and above that is considered extreme values, the most extreme value is on 4918 seconds.
+```{r}
+q1campaign<-quantile(df$campaign, 0.25, na.rm = TRUE)
+q3campaign <-quantile(df$campaign, 0.75, na.rm = TRUE)
+IQR<- q3campaign - q1campaign
+extreme<- 3 * IQR
+outCampaign<-ggplot(df,aes(y = campaign)) +
+  geom_boxplot() +
+  geom_point(
+    data = subset(df, campaign < (q1campaign - extreme) | 
+                   campaign > (q3campaign + extreme)),
+    aes(x = 0, y = campaign),
+    color = "lightcoral") +
+  labs(
+    title = "Campaign Outliers and Extreme Values",
+    y = "Campaign") +
+  theme(axis.text.x = element_blank())
+ggplotly(outCampaign)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on the boxplot the biggest outlier is 9 contacts made, and it is still not considered extreme, and data above 9 is considered extreme, with the most extreme is 43 contacts made
+```{r}
+q1previous<-quantile(df$previous, 0.25, na.rm = TRUE)
+q3previous <-quantile(df$previous, 0.75, na.rm = TRUE)
+IQR<- q3previous - q1previous
+extreme<- 3 * IQR
+outPrevious<-ggplot(df,aes(y = previous)) +
+  geom_boxplot() +
+  geom_point(
+    data = subset(df, previous < (q1previous - extreme) | 
+                   previous > (q3previous + extreme)),
+    aes(x = 0, y = previous),
+    color = "lightcoral") +
+  labs(
+    title = "Previous Outliers and Extreme Values",
+    y = "Previous") +
+  theme(axis.text.x = element_blank())
+ggplotly(outPrevious)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Based on the boxplot the biggest extreme values is 6 contacts made, and no outliers were identified so anything above 0 means extreme values
+
+#### Looking for irrelevant values
+```{r}
+table(df$pdays)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The irrelevant values aren't the exact data value, irrelevant values are sometimes considered as a value that symbolises something, in this case 999 in the column pdays means not previously contacted. The 999 can actually affect the mean and median of this column.
+
+### 1b. Handle the issues you identified
+#### Make a dataset called 'clean_data'
+```{r}
+clean_data<-df
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Make a duplicate of df and called clean_data the clean_data is the dataset that we will modify and make it cleaner and ready to get processed
+
+#### Cleaning missing values using median
+```{r}
+median_duration<-median(clean_data$duration, na.rm = TRUE)
+clean_data$duration[is.na(clean_data$duration)]<-median_duration
+cat("Missing values in duration after imputation:", sum(is.na(clean_data$duration)), "\n")
+cat("Median used for imputation:", median_duration, "seconds\n")
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Searching the median for duration column which is 180 and all missing values has been replaced with the median value which is 180, this makes there are no longer missing value in duration column. Also, because duration is a numerical column it is better to fill the missing value with median because it is more robust to outliers and extreme values.
+
+#### Check again whether median input is successful or not
+```{r}
+colSums(is.na(clean_data))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If we check again for the missing values in df but now is copied and modified to clean_data, the duration shows that it has 0 missing values. Also, from this result this indicates that none of the column has missing values.
+
+#### Cleaning missing values or unknown values in categorical columns using mode
+```{r}
+get_mode <- function(x) {
+  valid_values <- x[x != "unknown" & x != " " & !is.na(x)]
+  if(length(valid_values) > 0) {
+    return(names(sort(table(valid_values), decreasing = TRUE))[1])
+  }
+  return(NA)
+}
+
+job_mode <- get_mode(clean_data$job)
+clean_data$job[clean_data$job == "unknown" | clean_data$job == ""] <- job_mode
+
+marital_mode <- get_mode(clean_data$marital)
+clean_data$marital[clean_data$marital == "unknown"] <- marital_mode
+
+education_mode <- get_mode(clean_data$education)
+clean_data$education[clean_data$education == "unknown"] <- education_mode
+
+housing_mode <- get_mode(clean_data$housing)
+clean_data$housing[clean_data$housing == "unknown"] <- housing_mode
+
+loan_mode <- get_mode(clean_data$loan)
+clean_data$loan[clean_data$loan == "unknown"] <- loan_mode
+
+cat("'Unknown' and blank values are replaced with most frequent values (mode) appeared in their respective category, the modes are like the following:\n")
+cat("Job:", job_mode, "\n")
+cat("Marital:", marital_mode, "\n") 
+cat("Education:", education_mode, "\n")
+cat("Housing:", housing_mode, "\n")
+cat("Loan:", loan_mode, "\n")
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Also, for the categorical data, I chose to fill the blanks and unknowns with the mode of the columns, this shows that I am assuming the unknowns and the blanks has the same value as the majority values, but in here the column 'default' has the answer 'unknown' but since unknown here has meaning that is why I didn't convert it to the mode of the default column, but just let it be. 
+
+#### Checking whether cleaning categorical columns by inputting mode works or not
+```{r}
+cate_column <- names(clean_data)[sapply(df, function(x) is.character(x)|is.factor(x))]
+
+for (columnn in cate_column){
+  cat("\nColumn:", columnn, "\n")
+  print(table(clean_data[[columnn]]))
+}
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If we check again for unknown in job, marital, education, housing, loan or " " in job it will no longer exist because it has been replaced with the mode of each respective columns. 
+
+### 1c. Summary statistics and initial exploration
+```{r}
+numerical_cols <- c("age", "duration", "campaign", "pdays", "previous")
+
+summary_stats <- clean_data[numerical_cols] %>%
+  summarise_all(list(
+    Mean = ~round(mean(., na.rm = TRUE), 2),
+    Median = ~round(median(., na.rm = TRUE), 2),
+    SD = ~round(sd(., na.rm = TRUE), 2),
+    IQR = ~round(IQR(., na.rm = TRUE), 1),
+    Min = ~min(., na.rm = TRUE),
+    Max = ~max(., na.rm = TRUE)
+  )) %>%
+  pivot_longer(everything(), names_to = "Variable_Stat", values_to = "Value") %>%
+  separate(Variable_Stat, into = c("Variable", "Statistic"), sep = "_") %>%
+  pivot_wider(names_from = Statistic, values_from = Value)
+
+kable(summary_stats, caption = "Summary Statistics for Numerical Variables") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Above is the central tendency and variability for numerical columns. The numbers for pdays are a little bit confusing because the median and max has the same value, because like what we analyze before that pdays are filled with 999 as the value.
+```{r}
+age_by_job <- clean_data %>%
+  group_by(job) %>%
+  summarise(
+    Count = n(),
+    Mean_Age = round(mean(age, na.rm = TRUE), 1),
+    Median_Age = round(median(age, na.rm = TRUE), 1),
+    SD_Age = round(sd(age, na.rm = TRUE), 1),
+    Min_Age = min(age, na.rm = TRUE),
+    Max_Age = max(age, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(Count))
+
+kable(age_by_job, caption = "Age Distribution by Job Type") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Above is the summary table of age by job type with admin as the majority and retired as minority. The youngest in age is 20 which is in the blue-collar and services job, also the oldest in age is 89 in retired category
+```{r}
+outcome_summarybyage <- clean_data %>%
+  group_by(y) %>%
+  summarise(
+    Count = n(),
+    Percentage = round(n()/nrow(clean_data) * 100, 1),
+    Avg_Age = round(mean(age), 1),
+    Avg_Duration = round(mean(duration), 1),
+    Avg_Campaign = round(mean(campaign), 1),
+    .groups = 'drop'
+  )
+
+kable(outcome_summarybyage, caption = "Campaign Outcome Summary") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Above is the summary table of campaign outcome distribution, most of the campaign didn't come to a success since a lot of the clients rejected or doesn't subscribe to a term deposit. The one that rejects has the average age of ~40 and it took an average of 3 contacts to make them reject and those who accepted has the average age of ~41 and it took them an average of 2 contacts to be convinced.
+
+## Question 2: Relationship Analysis{.tabset}
+### 2a. Explore variable relationships
+```{r}
+clean_data <- clean_data %>%
+  mutate(y_numeric = as.numeric(y == "yes"))
+
+correlation <- data.frame(
+  Variable = c("age", "duration", "campaign", "previous"),
+  Pearson = c(
+    cor(clean_data$age, clean_data$y_numeric, method = "pearson"),
+    cor(clean_data$duration, clean_data$y_numeric, method = "pearson"),
+    cor(clean_data$campaign, clean_data$y_numeric, method = "pearson"),
+    cor(clean_data$previous, clean_data$y_numeric, method = "pearson")
+  ),
+  Spearman = c(
+    cor(clean_data$age, clean_data$y_numeric, method = "spearman"),
+    cor(clean_data$duration, clean_data$y_numeric, method = "spearman"),
+    cor(clean_data$campaign, clean_data$y_numeric, method = "spearman"),
+    cor(clean_data$previous, clean_data$y_numeric, method = "spearman")
+  )
+)
+
+knitr::kable(
+  correlation,
+  caption = "Correlation of Numeric Variables with Campaign Outcome",
+  digits = 3,
+  col.names = c("Variable", "Pearson", "Spearman")
+)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;After checking the correlation score between numeric variables and campaign outcome using pearson and spearman method, we can see that the highest correlation that a numeric variable has with campaign outcome is on the duration column, so we can go ahead and do a grouped summary of those 2 columns. 
+```{r}
+duration_outcome <- clean_data %>%
+  group_by(y) %>%
+  summarise(
+    Count = n(),
+    Mean_Duration = round(mean(duration, na.rm = TRUE), 1),
+    Median_Duration = round(median(duration, na.rm = TRUE), 1),
+    SD_Duration = round(sd(duration, na.rm = TRUE), 1),
+    Min_Duration = min(duration, na.rm = TRUE),
+    Max_Duration = max(duration, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+kable(duration_outcome, caption = "Call Duration by Campaign Outcome") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clients mostly rejected the offer because the count for 'no' is 7329 and 'yes' is only 909, clients who accepted the term deposit or answered 'yes' had longer average contact duration in the value 552.8 seconds compared to those who rejected or answered 'no' the average contact duration is 221.5 seconds. This suggests that longer conversations are more likely to result in successful outcomes.
+```{r}
+job_outcome <- clean_data %>%
+  group_by(job, y) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = y, values_from = Count, values_fill = 0) %>%
+  mutate(
+    Total = no + yes,
+    SuccessRate = round((yes/Total)*100,1)
+  ) %>%
+  arrange(desc(SuccessRate))
+
+kable(job_outcome, caption = "Campaign Success Rate by Job Type") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The largest job group and says yes the most is admin but however it doesn't have the biggest success rate the success rate for admin is only 12.4%. The job categories with the highest success rate is student with the rate of 29.3% success rate. Also, blue collar has the lowest success rate maybe due to it being the 2nd largest group but only 6.4% said yes.
+```{r}
+poutcome_outcome <- clean_data %>%
+  group_by(poutcome, y) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = y, values_from = Count, values_fill = 0) %>%
+  mutate(
+    Total = no + yes,
+    Success_Rate = round((yes / Total) * 100, 1)
+  ) %>%
+  arrange(desc(Success_Rate))
+
+kable(poutcome_outcome, caption = "Current Campaign Success by Previous Campaign Outcome") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This table shows how past campaign results can actually predict current success. Clients with previous successful campaigns have a 63.2% success rate in the current campaign, which is dramatically higher than those with previous outcome being failures (has a 12.9% success rate) or no previous contact has ever been made before and this is their first campaign with the success rate of 8.9%. This indicates that clients who responded positively before are much more likely to respond positively again, suggesting strong customer loyalty and satisfaction with the bank's services. The pattern indicates that it is important to stay in good terms with previously successfully convinced client.
+
+### 2b. Feature engineering
+```{r}
+clean_data <- clean_data %>%
+  mutate(
+    age_group = case_when(
+      age < 30 ~"<30",
+      age >= 30 & age <= 50 ~ "30-50",
+      age > 50 ~">50"
+    )
+  )
+age_distribution <-table(clean_data$age_group)
+
+age_df<- data.frame(
+  Age_Dist = names(age_distribution),
+  Count = as.numeric(age_distribution)
+)
+
+kable(age_df,caption = "Distribution of Age") %>%
+  kable_styling(bootstrap_options= c("striped", "hover"))
+
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The age group distribution shows that the 30-50 age group is the largest group with 5,608 clients, followed by clients over 50 years old which has the value of 1,443 clients, and clients under 30 years old with 1,187 clients. This indicates that the bank's clients are dominated by people who is in their 30 - 50s.
+```{r}
+clean_data <-clean_data %>%
+  mutate(
+    recency_level =case_when(
+      pdays== 999 ~"never",
+      pdays <= 21 ~ "recent",
+      pdays > 21~ "old"
+    )
+  )
+
+recency_dist <- table(clean_data$recency_level)
+
+recent_df <- data.frame(
+  Recency_Dist= names(recency_dist),
+  Count = as.numeric(recency_dist)
+)
+
+kable(recent_df,caption= "Distribution of Recency Level") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The recency level distribution shows that the majority of client with the value of 7,947 clients have never been contacted ever, and tehre are 289 clients were contacted in the last 3 weeks and only 2 clients were contacted in more than 3 weeks ago. This means that most clients in this campaign are being approached for the first time.
+```{r}
+clean_data <- clean_data %>%
+  mutate(
+    totalcontact_score=campaign+previous
+  )
+
+contact_score_distribution <- table(clean_data$totalcontact_score)
+
+contact_score_df<- data.frame(
+  Total_Contact_Score = names(contact_score_distribution),
+  Count = as.numeric(contact_score_distribution)
+)
+
+kable(contact_score_df, caption ="Distribution of Total Contact Score") %>%
+  kable_styling(bootstrap_options =c("striped", "hover"))
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The total contact score distribution shows that most clients, 3.038 clients in total, have a score of 1, meaning they were contacted only once across all campaigns. The frequency decreases as the contact score increases, with 2.188 clients having a score of 2 contacts, and 1.285 clients having 3 contacts made. Very few clients have high contact value, with only 1 client having the maximum value of contact made that is on 43 contacts. This indicates that the bank typically makes minimal contact attempts with most clients, and follow-up contact is rarely done.
+
+### 2c. Interactive visualizations of relationships
+#### Between 2 categorical variables
+```{r}
+plot_data <- clean_data %>%
+  count(job, y) %>%
+  group_by(job) %>%
+  mutate(total = sum(n)) %>% 
+  ungroup()
+
+job_outcome <- ggplot(plot_data, aes(x = reorder(job, total), y = n, fill = y)) +
+  geom_col() +
+  labs(
+    title = "Campaign Outcome by Job",
+    x = "Job Type",
+    y = "Client Counts",
+    fill = "Campaign Outcome"
+  ) +
+  scale_fill_manual(values = c("no" ="lightcoral", "yes"="palegreen")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45),
+    plot.title = element_text(face = "bold")
+  )
+
+ggplotly(job_outcome)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For interactive visualization between 2 categorical variable, I chose to use the same columns as I did for the variable correlation analysis in 2a, which are job and y. Here the bar chart compares job types with campaign outcomes, sorted by total client count from lowest to highest (so the chart is prettier and easier to read). Admin workers show the highest numbers for both 'yes' and 'no'. Students and retired clients, even when they have smaller sample sizes, appear to have relatively higher acceptance rates compared to other columns, retired clients have 90 'yes' which is on the 4th place if we sort the frequency of 'yes' from highest to lowest, and students are in 7th place with n=54 which means the count for 'yes' is 54. The visualization clearly shows that while admin and blue-collar workers make up the majority of contacts, their success rates are low compared to students. Like we analyzed before in correlation, student has 29.3% success rate while admin has 12.4% success rate and blue-collar has 6.4% success rate.
+
+#### Between numerical and categorical variables
+```{r}
+age_boxplot <- ggplot(clean_data, aes(x = y, y = age, fill = y)) +
+  geom_boxplot() +
+  labs(
+    title = "Age Distribution by Campaign Outcome",
+    x = "Campaign Outcome",
+    y = "Age",
+    fill = "Campaign Outcome"
+  ) +
+  scale_fill_manual(values = c("no" = "lightcoral", "yes" = "palegreen")) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold")
+  )
+
+ggplotly(age_boxplot)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For the categorical and numerical variable visualization, I chose y and age. This interactive boxplot shows the age distribution for each current campaign outcome, which is yes and no. The successful and unsuccessful campaign outcome show similar median ages around late 30 age, those who said 'no' has the median of 38 years old and those who says 'yes' has the median of 36 years old, with the successful group having a slightly lower median age. The interquartile ranges are also quite similar between the two groups, suggesting that age alone is not be a strong predictor of whether the campaign is successful or not. But, the successful group shows a slightly better distribution with fewer outliers.
+
+#### Multi dimensional
+```{r}
+multidim_education <- clean_data %>%
+  group_by(age_group, education, y) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = y, values_from = count, values_fill = 0) %>%
+  mutate(
+    total = no + yes,
+    success_rate = round((yes / total) * 100, 1)
+  ) %>%
+  filter(total >= 5)  # only show those with minimum of 5 samples in the category to avoid unreliable data
+
+multidim_edu_plot <- ggplot(multidim_education, aes(x = age_group, y = success_rate, fill = education)) +
+  geom_col(position='dodge') +
+  labs(
+    title = "Campaign Success Rate by Age Group Grouped by Education Level",
+    x = "Age Group",
+    y = "Success Rate (%)",
+    fill = "Education Level"
+  ) +
+  scale_fill_brewer(type = "qual", palette = "Pastel2") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold"),
+    legend.position = "bottom"
+  )
+
+ggplotly(multidim_edu_plot)
+```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This multi-dimensional bar plot shows current campaign success rates grouped by age group column that we made in 2b, also in each of the age group it has more category inside which is the education level column again by education level. The visualization reveals how education level influences campaign success within different age groups. Higher education levels, particularly university degrees, professional courses and high school, consistently show better success rates across all age groups, with the youngest group (under 30 years old) achieving the highest success rates among all age group with the success rate of their university degree clients. The middle-aged group (30-50 years old) shows okay success rates with university degree and it has the highest success rate among the age group but the university degree on this age group is the lowest among other age group, while the oldest group (above 50 years old) demonstrates the a moderate success rates across all education levels, with the highest success rate is with clients with a basic 4y education and the lowest success rate is clients with basic 9y education level. This pattern means that both younger age and higher education can impact campaign acceptance significantly/positively, though the >50 age group shows a different education preference pattern compared to younger groups with the highest success rate is those who have basic 4y education level, because maybe the era is different too in terms of education.
+
+## Question 3: Make business recommendations {.tabset}
+### Chart 1
+#### 3a. Data storytelling through visual design
+```{r}
+duration_story <- clean_data %>%
+  mutate(
+    duration_group = case_when(
+      duration < 100 ~ "Very Short (<100s)",
+      duration >= 100 & duration < 300 ~ "Short (100-300s)", 
+      duration >= 300 & duration < 600 ~ "Medium (300-600s)",
+      duration >= 600 ~ "Long (≥600s)"),
+    duration_group = factor(duration_group, levels = c("Very Short (<100s)", "Short (100-300s)", "Medium (300-600s)", "Long (≥600s)"))) %>%
+  group_by(duration_group, y) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(duration_group) %>%
+  mutate(
+    total = sum(count),
+    success_rate = round((count[y == "yes"] / total) * 100, 1)
+  ) %>%
+  filter(y == "yes") %>%
+  ungroup()
+
+duration_plot <-ggplot(duration_story, aes(x = duration_group, y = success_rate, fill = duration_group)) +
+  geom_col() +
+  geom_text(aes(label=paste0(success_rate, "%")),size = 5) +
+  labs(
+    title = "Campaign Success Rate with Call Duration Categories",
+    x = "Call Duration Categories",
+    y = "Success Rate (%)"
+  )+
+  scale_fill_brewer(type = "qual", palette="Pastel2") +
+  scale_y_continuous(limits =c(0, max(duration_story$success_rate))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+ggplotly(duration_plot)
+```
+
+#### 3b. Interpret your findings
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This chart reveals that campaign success rates will increase with longer call duration, because the lowest success rate is 0.7% and it's for very short calls under 100 seconds then it grew to a success rate of 47.3% for calls lasting more than 600 seconds. Even the difference between medium and long duration is pretty significant with almost 30%. So the possible correlation here is because genuinely engaged customers will naturally comply to participate in longer discussions and that is where bank representatives can properly explain benefits and address concerns of the campaign they are doing currently.
+
+#### 3c. Make business recommendations
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;First, implement minimum call duration standards of 300 seconds (5 minutes), as calls under this time cap have less than 8% success probability and this will mean the effort that the bank representative has done is wasted. Second, teach agents to slow down and have real conversations with customers instead of rushing through calls, because taking more time leads to much better results. Bank representatives then can explain benefits clearly, and take time to answer questions, since our data proves that longer conversations of 10+ minutes are much more successful than rushing through quick calls.
+
+### Chart 2
+#### 3a. Data storytelling through visual design
+```{r}
+loyalty_story <- clean_data %>%
+  group_by(poutcome, y) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(poutcome) %>%
+  mutate(
+    total = sum(count),
+    success_rate = round((count[y == "yes"] / total) * 100, 1)
+  ) %>%
+  filter(y == "yes") %>%
+  ungroup() %>%
+  mutate(
+    poutcome_clean = case_when(
+      poutcome == "success" ~ "Previous Success",
+      poutcome == "failure" ~ "Previous Failure", 
+      poutcome == "nonexistent" ~ "First-Time Contact (nonexistent)"),
+    highlight = ifelse(poutcome == "success", "highlight", "normal")
+  )
+
+loyalty_plot <- ggplot(loyalty_story, aes(x = reorder(poutcome_clean, success_rate), y = success_rate, fill = highlight)) +
+  geom_col() +
+  geom_text(aes(label = paste0(success_rate, "%")), size = 5,
+            color = ifelse(loyalty_story$highlight == "highlight", "black", "black")) +
+  labs(
+    title = "Customer Loyalty from Previous Campaign to Current Campaign",
+    x = "Previous Campaign Experience",
+    y = "Current Campaign Success Rate (%)"
+  ) +
+  scale_fill_manual(values = c("highlight" = "palegreen", "normal" = "lightcoral")) +
+  scale_y_continuous(limits = c(0, max(loyalty_story$success_rate))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(size = 11),
+    legend.position = "none"
+  )
+
+ggplotly(loyalty_plot)
+```
+
+#### 3b. Interpret your findings
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This chart reveals that customer loyalty from previous campaigns is the strongest predictor of current campaign success, showing a dramatic 7x difference between satisfied and new customers. First-time contacts achieve only 8.9% success rate, previous failures show slight improvement at 12.9%, but customers with previous successful experiences shows loyalty with the bank with 63.2% success rate. The massive gap between previous success (63.2%) and first-time contacts (8.9%) and previous failure (12.9%) indicates that satisfied customers are willing to engage in future offerings. In this case, the clients who previously accepted the campaign are more likely to accept the current campaign because maybe the bank really does give a good benefit for it. This pattern suggests that maintaining good relationships with existing successful customers is effectively impacting the future campaign outcomes too, this might be better than searching new prospects.
+
+#### 3c. Make business recommendations
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;First, prioritize campaigns targeting customers with previous successful outcomes, since they have a 63.2% success rate compared to only 8.9% for new contacts, this means focusing on satisfied customers is way more effective than contacting new prospects. Second, create a customer loyalty program to keep successful customers engaged between campaigns, because the data proves that once customers trust the bank and have positive experiences, they become highly likely to accept future offers. Bank representatives should maintain regular contact with these valuable customers through follow-up calls or special offers to make them want to remain there being satisfied and ready for the next campaign.
+
+
